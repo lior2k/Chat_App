@@ -1,20 +1,25 @@
 import socket
-import sys
 import threading
 import time
 
-client_socket = socket.socket()
-port = 55000
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+port = 55000          # '109.65.63.141'
 client_socket.connect(('127.0.0.1', port))
 
-# receive connection message from server
-recv_msg = client_socket.recv(1024)
-print(recv_msg.decode())
+isConnected_msg = client_socket.recv(1024)
+print(isConnected_msg.decode())
 
-# send user details to server
-send_msg = input("Enter your user name(prefix with #):")
-myname = send_msg[1:]
-client_socket.send(bytes(send_msg, "utf-8"))
+# sign in to server (name overlap validation)
+while True:
+    send_msg = input("Enter your user name(prefix with #):")
+    myname = send_msg[1:]
+    client_socket.send(bytes(send_msg, "utf-8"))
+    time.sleep(2)
+    server_approval = client_socket.recv(1024)
+    if not server_approval.startswith(myname.encode()):
+        break
+    else:
+        print(server_approval.decode())
 
 flag = 0
 
@@ -25,9 +30,13 @@ def recv_msg():
         if flag == 1:
             break
         recv_msg = client_socket.recv(1024)
-        if len(recv_msg) > 0:
+        if recv_msg.startswith(bytes('&txt', "utf-8")):
+            t3 = threading.Thread(target=download_txt_file())
+            t3.start()
+            continue
+        elif len(recv_msg) > 0:
             print(recv_msg.decode())
-        time.sleep(2)
+        # time.sleep(2)
 
 
 def send_msg():
@@ -35,14 +44,31 @@ def send_msg():
     while True:
         send_msg = input("Send your message in format @user:message or @all:message ")
         if send_msg == 'exit':
-            exit_msg = send_msg+","+myname
-            client_socket.send(exit_msg.encode())
+            out_msg = ('!'+send_msg+","+myname).encode()
+            client_socket.send(out_msg)
             flag = 1
             break
+        elif send_msg.startswith('$'):
+            out_msg = (send_msg+","+myname).encode()
+        elif send_msg.startswith('get users'):
+            out_msg = ('%' + send_msg).encode()
+        elif send_msg.startswith('&&'):
+            out_msg = (send_msg + ',' + myname).encode()
         else:
-            # client_socket.send(bytes(send_msg, "utf-8"))
-            client_socket.send(send_msg.encode())
-        time.sleep(2)
+            out_msg = send_msg.encode()
+        client_socket.send(out_msg)
+        # time.sleep(2)
+
+
+def download_txt_file():
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_socket.bind(('127.0.0.1', 55015))
+    save_as_name = input('enter the name you want to save the file')
+    file = open(save_as_name, 'w')
+    data = udp_socket.recv(1024)
+    file.write(data.decode())
+    file.close()
+    udp_socket.close()
 
 
 t1 = threading.Thread(target=recv_msg)
@@ -51,9 +77,8 @@ t1.start()
 t2.start()
 t2.join()
 t1.join()
-client_socket.close()
-sys.exit(0)
 
+client_socket.close()
 
 # import socket
 # import sys
@@ -69,19 +94,9 @@ sys.exit(0)
 # print(recv_msg.decode())
 #
 # # send user details to server
-# while True:
-#     send_msg = input("Enter your user name(prefix with #):")
-#     myname = send_msg[1:]
-#     client_socket.send(bytes(send_msg, "utf-8"))
-#     time.sleep(2)
-#     server_approval = client_socket.recv(1024)
-#     if not server_approval.startswith(myname.encode()):
-#         break
-#     else:
-#         print(server_approval.decode())
-#         send_msg = input("Enter your user name(prefix with #):")
-#         myname = send_msg[1:]
-#         client_socket.send(bytes(send_msg, "utf-8"))
+# send_msg = input("Enter your user name(prefix with #):")
+# myname = send_msg[1:]
+# client_socket.send(bytes(send_msg, "utf-8"))
 #
 # flag = 0
 #
