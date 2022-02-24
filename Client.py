@@ -1,6 +1,10 @@
 import socket
+import sys
 import threading
 import time
+
+SEPARATOR = "<SEPARATOR>"
+BUFFER_SIZE = 4096
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 port = 55000          # '109.65.63.141'
@@ -30,10 +34,10 @@ def recv_msg():
         if flag == 1:
             break
         recv_msg = client_socket.recv(1024)
-        if recv_msg.startswith(bytes('&txt', "utf-8")):
-            t3 = threading.Thread(target=download_txt_file())
+        if recv_msg.startswith(bytes('&download', "utf-8")):
+            suffix = recv_msg.decode()[9:]
+            t3 = threading.Thread(target=download_file(suffix))
             t3.start()
-            continue
         elif len(recv_msg) > 0:
             print(recv_msg.decode())
         # time.sleep(2)
@@ -60,13 +64,16 @@ def send_msg():
         # time.sleep(2)
 
 
-def download_txt_file():
+def download_file(suffix: str):
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.bind(('127.0.0.1', 55015))
-    save_as_name = input('enter the name you want to save the file')
-    file = open(save_as_name, 'w')
-    data = udp_socket.recv(1024)
-    file.write(data.decode())
+    save_as_name = input('enter the name you want to save the file (without suffix)')
+    file = open((save_as_name + '.' + suffix), 'wb')
+    while True:
+        bytes_read = udp_socket.recv(BUFFER_SIZE)
+        if not bytes_read:
+            break
+        file.write(bytes_read)
     file.close()
     udp_socket.close()
 
@@ -79,59 +86,4 @@ t2.join()
 t1.join()
 
 client_socket.close()
-
-# import socket
-# import sys
-# import threading
-# import time
-#
-# client_socket = socket.socket()
-# port = 55000
-# client_socket.connect(('127.0.0.1', port))
-#
-# # receive connection message from server
-# recv_msg = client_socket.recv(1024)
-# print(recv_msg.decode())
-#
-# # send user details to server
-# send_msg = input("Enter your user name(prefix with #):")
-# myname = send_msg[1:]
-# client_socket.send(bytes(send_msg, "utf-8"))
-#
-# flag = 0
-#
-#
-# def recv_msg():
-#     global flag
-#     while True:
-#         if flag == 1:
-#             break
-#         recv_msg = client_socket.recv(1024)
-#         if len(recv_msg) > 0:
-#             print(recv_msg.decode())
-#         time.sleep(2)
-#
-#
-# def send_msg():
-#     global flag
-#     while True:
-#         send_msg = input("Send your message in format @user:message or @all:message ")
-#         if send_msg == 'exit':
-#             exit_msg = send_msg+","+myname
-#             client_socket.send(exit_msg.encode())
-#             flag = 1
-#             break
-#         else:
-#             # client_socket.send(bytes(send_msg, "utf-8"))
-#             client_socket.send(send_msg.encode())
-#         time.sleep(2)
-#
-#
-# t1 = threading.Thread(target=recv_msg)
-# t2 = threading.Thread(target=send_msg)
-# t1.start()
-# t2.start()
-# t2.join()
-# t1.join()
-# client_socket.close()
-# sys.exit(0)
+sys.exit(0)
