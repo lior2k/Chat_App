@@ -3,6 +3,7 @@ import socket
 import time
 import traceback
 import select
+import tqdm
 
 SEPARATOR = "<SEPARATOR>"
 BUFFER_SIZE = 4096
@@ -75,14 +76,17 @@ def send_file():
             dot_index -= 1
         file_type = file_name[dot_index + 1:]
         abs_path = os.path.abspath(file_name)
-        sock.send(f'&download{file_type}'.encode())
+        file_size = os.path.getsize(file_name)
+        sock.send(f'&download{SEPARATOR}{file_type}{SEPARATOR}{file_name}{SEPARATOR}{file_size}'.encode())
         time.sleep(1)
+        progress = tqdm.tqdm(range(file_size), f"Sending {file_name}", unit="B", unit_scale=True, unit_divisor=1024)
         file = open(abs_path, 'rb')
         while True:
             bytes_read = file.read(BUFFER_SIZE)
             if not bytes_read:
                 break
             udp_server_socket.sendto(bytes_read, ('127.0.0.1', 55015))
+            progress.update(len(bytes_read))
         file.close()
         files.pop(user_name)
 

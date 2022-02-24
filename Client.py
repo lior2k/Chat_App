@@ -2,6 +2,7 @@ import socket
 import sys
 import threading
 import time
+import tqdm
 
 SEPARATOR = "<SEPARATOR>"
 BUFFER_SIZE = 4096
@@ -35,8 +36,8 @@ def recv_msg():
             break
         recv_msg = client_socket.recv(1024)
         if recv_msg.startswith(bytes('&download', "utf-8")):
-            suffix = recv_msg.decode()[9:]
-            t3 = threading.Thread(target=download_file(suffix))
+            _, suffix, file_name, file_size = recv_msg.decode().split(SEPARATOR)
+            t3 = threading.Thread(target=download_file(suffix, file_name, file_size))
             t3.start()
         elif len(recv_msg) > 0:
             print(recv_msg.decode())
@@ -64,16 +65,19 @@ def send_msg():
         # time.sleep(2)
 
 
-def download_file(suffix: str):
+def download_file(suffix: str, file_name, file_size):
+    file_size = int(file_size)
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.bind(('127.0.0.1', 55015))
     save_as_name = input('enter the name you want to save the file (without suffix)')
+    progress = tqdm.tqdm(range(file_size), f"Sending {file_name}", unit="B", unit_scale=True, unit_divisor=1024)
     file = open((save_as_name + '.' + suffix), 'wb')
     while True:
         bytes_read = udp_socket.recv(BUFFER_SIZE)
         if not bytes_read:
             break
         file.write(bytes_read)
+        progress.update(len(bytes_read))
     file.close()
     udp_socket.close()
 
