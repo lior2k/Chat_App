@@ -1,33 +1,37 @@
 import os
 import socket
+import threading
 import time
 import traceback
 import select
-import tqdm
 
 SEPARATOR = "<SEPARATOR>"
 BUFFER_SIZE = 4096
 
 
 def sign_in():
-    name = data[1:].decode()
-    if users.keys().__contains__(name):
-        connect.send(("" + name + " already taken, please try with a different name").encode())
+    client_name = data[1:].decode()
+    if users.keys().__contains__(client_name):
+        connect.send(("" + client_name + " already taken, please try with a different name").encode())
     else:
-        users[name] = connect
-        print("User " + name + " added.")
-        connect.send(("Your user detail saved as : " + name).encode())
+        users[client_name] = connect
+        print("User " + client_name + " added.")
+        msg = "User " + client_name + " connected."
+        for sock_ in socket_list:
+            if sock_ != server_socket:
+                sock_.send(msg.encode())
 
 
 def send_msg():
     index = str(data).index(':')
     msg = data[index - 1:]
+    msg = ((name + ': ').encode()) + msg
     if data.startswith(bytes("@all", "utf-8")):
         for user in users.values():
             user.send(msg)
     else:
-        name = data[1:index - 2].decode()
-        user = users[name]
+        target = data[1:index - 2].decode()
+        user = users[target]
         user.send(msg)
 
 
@@ -44,9 +48,9 @@ def get_users():
 def remove_user():
     sp = str(data).split(',')
     socket_list.remove(sock)
-    name = (sp[1])[:-1]
-    users.pop(name)
-    msg = "User " + name + " disconnected."
+    client_name = (sp[1])[:-1]
+    users.pop(client_name)
+    msg = "User " + client_name + " disconnected."
     print(msg)
     for sock_ in socket_list:
         if sock_ != server_socket:
@@ -61,32 +65,36 @@ def request_file():
     filename = data_str[1:comma_index]
     user_name = data_str[comma_index + 1:]
     files[user_name] = filename
-    sock.send(('file - ' + filename + ' request received, to download enter "&&"').encode())
+    sock.send(('file - ' + filename + ' request received, to download enter "&& save as name" eg && dog').encode())
 
 
 def send_file():
     data_str = data.decode()
-    user_name = data_str[3:]
+    data_sp = data_str.split(SEPARATOR)
+    save_as_name = data_sp[1]
+    user_name = data_sp[2]
     if not files.keys().__contains__(user_name):
         sock.send('error: no file was requested'.encode())
     else:
-        file_name = files[user_name]
+        server_file_name = files[user_name]
         dot_index = 0
-        while ord(file_name[dot_index]) != ord('.'):
+        while ord(server_file_name[dot_index]) != ord('.'):
             dot_index -= 1
-        file_type = file_name[dot_index + 1:]
-        abs_path = os.path.abspath(file_name)
-        file_size = os.path.getsize(file_name)
-        sock.send(f'&download{SEPARATOR}{file_type}{SEPARATOR}{file_name}{SEPARATOR}{file_size}'.encode())
+        file_type = server_file_name[dot_index + 1:]
+        abs_path = os.path.abspath(server_file_name)
+        file_size = os.path.getsize(server_file_name)
+        sock.send(f'&download{SEPARATOR}{file_type}{SEPARATOR}{save_as_name}{SEPARATOR}{file_size}'.encode())
         time.sleep(1)
-        progress = tqdm.tqdm(range(file_size), f"Sending {file_name}", unit="B", unit_scale=True, unit_divisor=1024)
         file = open(abs_path, 'rb')
+        sent = 0
         while True:
             bytes_read = file.read(BUFFER_SIZE)
+            udp_server_socket.sendto(bytes_read, ('127.0.0.1', 55015))
+            sent = sent + len(bytes_read)
+            sock.send(f'sent: {sent} / {file_size}'.encode())
+            print(f'sent: {sent} / {file_size} to {user_name}')
             if not bytes_read:
                 break
-            udp_server_socket.sendto(bytes_read, ('127.0.0.1', 55015))
-            progress.update(len(bytes_read))
         file.close()
         files.pop(user_name)
 
@@ -113,6 +121,11 @@ while True:
         else:
             try:
                 data = sock.recv(2048)
+                name = ''
+                for user in users.keys():
+                    if users[user] == sock:
+                        name = user
+                        break
                 # sign in #
                 if data.startswith(bytes("#", "utf-8")):
                     sign_in()
@@ -136,7 +149,8 @@ while True:
 
                 # file download over UDP (proceed button)
                 if data.startswith(bytes("&&", "utf-8")):
-                    send_file()
+                    t1 = threading.Thread(target=send_file())
+                    t1.start()
 
             except ValueError and KeyError and FileNotFoundError as e:
                 traceback.print_exc()
