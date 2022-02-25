@@ -7,16 +7,27 @@ SEPARATOR = "<SEPARATOR>"
 BUFFER_SIZE = 4096
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-port = 55000          # '109.65.63.141'
+port = 55000
 client_socket.connect(('127.0.0.1', port))
+
+print('---Client Manual---')
+print('To send a message to a single user use the syntax "@username:message"')
+print('To send a message to all connected users use the syntax "@all:message"')
+print('To get a list of online users enter the words "get users"')
+print('To get a list of server files ...')
+print('To request a file enter "$filename"')
+print('To download the file after requesting it enter "&& name to save"')
+print('---Client Manual---')
+print()
 
 isConnected_msg = client_socket.recv(1024)
 print(isConnected_msg.decode())
 
 # sign in to server (name overlap validation)
 while True:
-    send_msg = input("Enter your user name(prefix with #):")
-    myname = send_msg[1:]
+    send_msg = input("Enter your user name:")
+    myname = send_msg
+    send_msg = '#' + send_msg
     client_socket.send(bytes(send_msg, "utf-8"))
     time.sleep(1)
     server_approval = client_socket.recv(1024)
@@ -35,8 +46,9 @@ def recv_msg():
             break
         recv_msg = client_socket.recv(1024)
         if recv_msg.startswith(bytes('&download', "utf-8")):
-            _, suffix, save_as, file_size = recv_msg.decode().split(SEPARATOR)
-            t3 = threading.Thread(target=download_file(suffix, save_as, file_size))
+            _, suffix, save_as, file_size, available_port = recv_msg.decode().split(SEPARATOR)
+            available_port = int(available_port)
+            t3 = threading.Thread(target=download_file(suffix, save_as, file_size, available_port))
             t3.start()
         elif len(recv_msg) > 0:
             print(recv_msg.decode())
@@ -64,19 +76,19 @@ def send_msg():
         # time.sleep(2)
 
 
-def download_file(suffix: str, save_as_name, file_size):
+def download_file(suffix: str, save_as_name, file_size, available_port):
     file_size = int(file_size)
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udp_socket.bind(('127.0.0.1', 55015))
+    udp_socket.bind(('127.0.0.1', available_port))
     file = open((save_as_name + '.' + suffix), 'wb')
     received = 0
     while True:
         bytes_read = udp_socket.recv(BUFFER_SIZE)
-        file.write(bytes_read)
-        received = received + len(bytes_read)
-        print(f'received: {received} / {file_size}')
         if not bytes_read:
             break
+        file.write(bytes_read)
+        received = received + len(bytes_read)
+        print(f'received: {received} / {file_size} bytes')
     file.close()
     udp_socket.close()
     return

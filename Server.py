@@ -83,32 +83,47 @@ def send_file():
         file_type = server_file_name[dot_index + 1:]
         abs_path = os.path.abspath(server_file_name)
         file_size = os.path.getsize(server_file_name)
-        sock.send(f'&download{SEPARATOR}{file_type}{SEPARATOR}{save_as_name}{SEPARATOR}{file_size}'.encode())
+        available_port = 0
+        for port_, bool_ in ports.items():
+            if bool_ is False:
+                available_port = port_
+                ports[port_] = True
+                break
+        if available_port == 0:
+            sock.send('all ports used, try again later'.encode())
+            return
+        sock.send(f'&download{SEPARATOR}{file_type}{SEPARATOR}{save_as_name}{SEPARATOR}{file_size}{SEPARATOR}{available_port}'.encode())
+        client_addr = sock.getsockname()[0]
         time.sleep(1)
-        file = open(abs_path, 'rb')
         sent = 0
+        file = open(abs_path, 'rb')
         while True:
             bytes_read = file.read(BUFFER_SIZE)
-            udp_server_socket.sendto(bytes_read, ('127.0.0.1', 55015))
+            udp_server_socket.sendto(bytes_read, (client_addr, available_port))
             sent = sent + len(bytes_read)
             sock.send(f'sent: {sent} / {file_size}'.encode())
-            print(f'sent: {sent} / {file_size} to {user_name}')
+            print(f'sent: {sent} / {file_size} bytes to {user_name}')
             if not bytes_read:
                 break
+        # port_ will always be recognized even tho there's a warning
+        ports[port_] = False
         file.close()
         files.pop(user_name)
 
 
+# port = int(input('enter server port'))
 port = 55000
 socket_list = []
 users = {}
 files = {}
+ports = {55001: False, 55002: False, 55003: False, 55004: False, 55005: False}
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server_socket.bind(('', port))
 server_socket.listen(5)
 socket_list.append(server_socket)
 udp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# udp_server_socket.bind(('', port))
 
 print('---Server is Running---')
 while True:
