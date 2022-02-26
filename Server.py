@@ -97,6 +97,7 @@ def send_file():
         time.sleep(1)
         sent = 0
         file = open(abs_path, 'rb')
+
         while True:
             bytes_read = file.read(BUFFER_SIZE)
             udp_server_socket.sendto(bytes_read, (client_addr, available_port))
@@ -116,7 +117,7 @@ port = 55000
 socket_list = []
 users = {}
 files = {}
-ports = {55001: False, 55002: False, 55003: False, 55004: False, 55005: False}
+ports = {55001: False, 55002: False, 55003: False, 55004: False, 55005: False, 55006: False, 55007: False, 55008: False, 55009: False, 55010: False}
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server_socket.bind(('', port))

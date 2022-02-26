@@ -2,6 +2,7 @@ import socket
 import sys
 import threading
 import time
+import pygame
 
 SEPARATOR = "<SEPARATOR>"
 BUFFER_SIZE = 4096
@@ -98,8 +99,9 @@ t1 = threading.Thread(target=recv_msg)
 t2 = threading.Thread(target=send_msg)
 t1.start()
 t2.start()
-t2.join()
-t1.join()
+
+
+
 
 client_socket.close()
 sys.exit(0)
