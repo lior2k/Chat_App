@@ -99,9 +99,8 @@ t1 = threading.Thread(target=recv_msg)
 t2 = threading.Thread(target=send_msg)
 t1.start()
 t2.start()
-
-
-
+t1.join()
+t2.join()
 
 client_socket.close()
 sys.exit(0)
