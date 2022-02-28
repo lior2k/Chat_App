@@ -2,7 +2,6 @@ import socket
 import sys
 import threading
 import time
-import pygame
 
 SEPARATOR = "<SEPARATOR>"
 BUFFER_SIZE = 4096
@@ -40,6 +39,14 @@ while True:
 flag = 0
 
 
+def checksum(packets: {}):
+    missing_packets = []
+    for i in packets.keys():
+        if not (packets[i])[1]:
+            missing_packets.append(i)
+    return missing_packets
+
+
 def recv_msg():
     global flag
     while True:
@@ -47,9 +54,9 @@ def recv_msg():
             break
         recv_msg = client_socket.recv(1024)
         if recv_msg.startswith(bytes('&download', "utf-8")):
-            _, suffix, save_as, file_size, available_port = recv_msg.decode().split(SEPARATOR)
+            _, suffix, save_as, file_size, available_port, number_of_packets = recv_msg.decode().split(SEPARATOR)
             available_port = int(available_port)
-            t3 = threading.Thread(target=download_file(suffix, save_as, file_size, available_port))
+            t3 = threading.Thread(target=download_file(suffix, save_as, file_size, available_port, number_of_packets))
             t3.start()
         elif len(recv_msg) > 0:
             print(recv_msg.decode())
@@ -77,19 +84,51 @@ def send_msg():
         # time.sleep(2)
 
 
-def download_file(suffix: str, save_as_name, file_size, available_port):
+def binaryToDecimal(binary):
+    binary1 = binary
+    decimal, i, n = 0, 0, 0
+    while (binary != 0):
+        dec = binary % 10
+        decimal = decimal + dec * pow(2, i)
+        binary = binary // 10
+        i += 1
+    return decimal
+
+
+def download_file(suffix: str, save_as_name, file_size, available_port, number_of_packets):
     file_size = int(file_size)
+    number_of_packets = int(number_of_packets)
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.bind(('127.0.0.1', available_port))
     file = open((save_as_name + '.' + suffix), 'wb')
+    packets = {}
+    for i in range(0, number_of_packets):
+        packets[i] = (None, False)
     received = 0
     while True:
-        bytes_read = udp_socket.recv(BUFFER_SIZE)
-        if not bytes_read:
+        missing_packets = checksum(packets)
+        if len(missing_packets) == 0:
+            client_socket.send('!check'.encode())
             break
-        file.write(bytes_read)
-        received = received + len(bytes_read)
-        print(f'received: {received} / {file_size} bytes')
+        else:
+            st = ''
+            for i in missing_packets:
+                if st == '':
+                    st = str(i)
+                else:
+                    st = st + ',' + str(i)
+            client_socket.send(st.encode())
+        for i in missing_packets:
+            bytes_read = udp_socket.recv(BUFFER_SIZE)
+            data = bytes_read[:4000]
+            seq_num = bytes_read[4000:].decode()
+            seq_num = binaryToDecimal(int(seq_num))
+            packets[seq_num] = (data, True)
+            # received = received + len(data)
+            # print(f'received: {received} / {file_size} bytes')
+
+    for packet in packets.values():
+        file.write(packet[0])
     file.close()
     udp_socket.close()
     return

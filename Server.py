@@ -92,20 +92,34 @@ def send_file():
         if available_port == 0:
             sock.send('all ports used, try again later'.encode())
             return
-        sock.send(f'&download{SEPARATOR}{file_type}{SEPARATOR}{save_as_name}{SEPARATOR}{file_size}{SEPARATOR}{available_port}'.encode())
+
         client_addr = sock.getsockname()[0]
         time.sleep(1)
         sent = 0
         file = open(abs_path, 'rb')
-
+        packets = {}
+        seq_num = 0
         while True:
-            bytes_read = file.read(BUFFER_SIZE)
-            udp_server_socket.sendto(bytes_read, (client_addr, available_port))
-            sent = sent + len(bytes_read)
-            sock.send(f'sent: {sent} / {file_size}'.encode())
-            print(f'sent: {sent} / {file_size} bytes to {user_name}')
+            bytes_read = file.read(BUFFER_SIZE - 96)
             if not bytes_read:
                 break
+            seq_num_encoded = '{:016b}'.format(seq_num).encode()
+            bytes_to_send = bytes_read + seq_num_encoded
+            packets[int(seq_num)] = bytes_to_send
+            seq_num += 1
+        sock.send(f'&download{SEPARATOR}{file_type}{SEPARATOR}{save_as_name}{SEPARATOR}{file_size}{SEPARATOR}{available_port}{SEPARATOR}{len(packets)}'.encode())
+        while True:
+            acknowledge_msg = sock.recv(1024).decode()
+            if acknowledge_msg == '!check':
+                break
+            else:
+                try:
+                    missing_packets = acknowledge_msg.split(',')
+                    for index in missing_packets:
+                        udp_server_socket.sendto(packets[int(index)], (client_addr, available_port))
+                except ValueError and OSError:
+                    traceback.print_exc()
+
         # port_ will always be recognized even tho there's a warning
         ports[port_] = False
         file.close()
