@@ -6,7 +6,7 @@ import traceback
 import select
 
 SEPARATOR = "<SEPARATOR>"
-BUFFER_SIZE = 4096
+BUFFER_SIZE = 2048
 
 
 def sign_in():
@@ -23,16 +23,19 @@ def sign_in():
 
 
 def send_msg():
-    index = str(data).index(':')
-    msg = data[index - 1:]
-    msg = ((name + ': ').encode()) + msg
-    if data.startswith(bytes("@all", "utf-8")):
-        for user in users.values():
+    try:
+        index = str(data).index(':')
+        msg = data[index - 1:]
+        msg = ((name + ': ').encode()) + msg
+        if data.startswith(bytes("@all", "utf-8")):
+            for user in users.values():
+                user.send(msg)
+        else:
+            target = data[1:index - 2].decode()
+            user = users[target]
             user.send(msg)
-    else:
-        target = data[1:index - 2].decode()
-        user = users[target]
-        user.send(msg)
+    except ValueError:
+        sock.send('ValueError(incorrect syntax).\n Correct syntax for message: [@all:msg] or [@username:msg]'.encode())
 
 
 def get_users():
@@ -46,9 +49,9 @@ def get_users():
 
 
 def remove_user():
-    sp = str(data).split(',')
+    exit_data = data.decode().split(SEPARATOR)
     socket_list.remove(sock)
-    client_name = (sp[1])[:-1]
+    client_name = exit_data[1]
     users.pop(client_name)
     msg = "User " + client_name + " disconnected."
     print(msg)
@@ -58,71 +61,98 @@ def remove_user():
 
 
 def request_file():
-    data_str = data.decode()
-    comma_index = 0
-    while ord(data_str[comma_index]) != ord(','):
-        comma_index -= 1
-    filename = data_str[1:comma_index]
-    user_name = data_str[comma_index + 1:]
+    request_data = data.decode().split(SEPARATOR)
+
+    # prevent miss use of space
+    if (request_data[1])[0] == ord(' '):
+        request_data[1] = (request_data[1])[1:]
+    filename = request_data[1]
+    user_name = request_data[2]
+
+    try:
+        open(filename, 'r')
+    except FileNotFoundError:
+        traceback.print_exception(FileNotFoundError)
+        sock.send('FileNotFoundError, please make sure to enter the exact name and try again.')
+        return
     files[user_name] = filename
-    sock.send(('file - ' + filename + ' request received, to download enter "&& save as name" eg && dog').encode())
+    sock.send(('file - ' + filename + ' request received, to download use !download').encode())
+
+
+def get_available_port() -> (int, int):
+    available_port = 0
+    for port_, bool_ in ports.items():
+        if bool_ is False:
+            available_port = port_
+            ports[port_] = True
+            break
+    return available_port, port_
+
+
+def get_file_related_data(user_name):
+    server_file_name = files[user_name]
+    dot_index = 0
+    while ord(server_file_name[dot_index]) != ord('.'):
+        dot_index -= 1
+    file_type = server_file_name[dot_index + 1:]
+    abs_path = os.path.abspath(server_file_name)
+    file_size = os.path.getsize(server_file_name)
+    return file_type, file_size, abs_path
+
+
+def load_file_into_dict(abs_path) -> {str: bytes}:
+    packets = {}
+    file = open(abs_path, 'rb')
+    seq_num_int = 1
+    while True:
+        bytes_read = file.read(BUFFER_SIZE - 2)
+        if not bytes_read:
+            break
+        if seq_num_int <= 9:
+            seq_num = '0' + str(seq_num_int)
+        else:
+            seq_num = str(seq_num_int)
+        bytes_to_send = seq_num.encode() + bytes_read
+        packets[seq_num] = bytes_to_send
+        seq_num_int += 1
+    file.close()
+    return packets
 
 
 def send_file():
-    data_str = data.decode()
-    data_sp = data_str.split(SEPARATOR)
-    save_as_name = data_sp[1]
-    user_name = data_sp[2]
+    download_msg = data.decode().split(SEPARATOR)
+    save_as_name = download_msg[1]
+    user_name = download_msg[2]
     if not files.keys().__contains__(user_name):
         sock.send('error: no file was requested'.encode())
     else:
-        server_file_name = files[user_name]
-        dot_index = 0
-        while ord(server_file_name[dot_index]) != ord('.'):
-            dot_index -= 1
-        file_type = server_file_name[dot_index + 1:]
-        abs_path = os.path.abspath(server_file_name)
-        file_size = os.path.getsize(server_file_name)
-        available_port = 0
-        for port_, bool_ in ports.items():
-            if bool_ is False:
-                available_port = port_
-                ports[port_] = True
-                break
+        file_type, file_size, abs_path = get_file_related_data(user_name)
+        available_port, port_ = get_available_port()
         if available_port == 0:
             sock.send('all ports used, try again later'.encode())
             return
-
         client_addr = sock.getsockname()[0]
         time.sleep(1)
-        sent = 0
-        file = open(abs_path, 'rb')
-        packets = {}
-        seq_num = 0
-        while True:
-            bytes_read = file.read(BUFFER_SIZE - 96)
-            if not bytes_read:
-                break
-            seq_num_encoded = '{:016b}'.format(seq_num).encode()
-            bytes_to_send = bytes_read + seq_num_encoded
-            packets[int(seq_num)] = bytes_to_send
-            seq_num += 1
+        packets = load_file_into_dict(abs_path)
         sock.send(f'&download{SEPARATOR}{file_type}{SEPARATOR}{save_as_name}{SEPARATOR}{file_size}{SEPARATOR}{available_port}{SEPARATOR}{len(packets)}'.encode())
         while True:
             acknowledge_msg = sock.recv(1024).decode()
+            time.sleep(0.25)
             if acknowledge_msg == '!check':
+                print('received check')
                 break
             else:
                 try:
                     missing_packets = acknowledge_msg.split(',')
-                    for index in missing_packets:
-                        udp_server_socket.sendto(packets[int(index)], (client_addr, available_port))
+                    udp_server_socket.sendto(packets[missing_packets[0]], (client_addr, available_port))
+                    print(f'sent pnum {missing_packets[0]} of len {len(packets[missing_packets[0]])}')
                 except ValueError and OSError:
                     traceback.print_exc()
 
         # port_ will always be recognized even tho there's a warning
         ports[port_] = False
-        file.close()
+
+        # remove client's file request
         files.pop(user_name)
 
 
@@ -131,7 +161,7 @@ port = 55000
 socket_list = []
 users = {}
 files = {}
-ports = {55001: False, 55002: False, 55003: False, 55004: False, 55005: False, 55006: False, 55007: False, 55008: False, 55009: False, 55010: False}
+ports = {55011: False, 55002: False, 55003: False, 55004: False, 55005: False, 55006: False, 55007: False, 55008: False, 55009: False, 55010: False}
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server_socket.bind(('', port))
@@ -156,29 +186,27 @@ while True:
                     if users[user] == sock:
                         name = user
                         break
-                # sign in #
+                # sign in #clientname
                 if data.startswith(bytes("#", "utf-8")):
                     sign_in()
-                # send msg to user @
+                # send msg to user @name:msg
                 elif data.startswith(bytes("@", "utf-8")):
                     send_msg()
-                # get users %
-                if data.startswith(bytes("%get users", "utf-8")):
+                # !users
+                if data.startswith(bytes("!users", "utf-8")):
                     get_users()
-                # client exit / remove !
+                # !exit 'client name'
                 if data.startswith(bytes("!exit", "utf-8")):
                     remove_user()
-
-                # get server file list
-                if data.startswith(bytes("get files", "utf-8")):
+                # !files
+                if data.startswith(bytes("!files", "utf-8")):
                     pass
-
-                # file requests $
-                if data.startswith(bytes("$", "utf-8")):
+                # !request 'file name'
+                if data.startswith(bytes("!request", "utf-8")):
                     request_file()
 
                 # file download over UDP (proceed button)
-                if data.startswith(bytes("&&", "utf-8")):
+                if data.startswith(bytes("!download", "utf-8")):
                     t1 = threading.Thread(target=send_file())
                     t1.start()
 

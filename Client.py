@@ -4,7 +4,7 @@ import threading
 import time
 
 SEPARATOR = "<SEPARATOR>"
-BUFFER_SIZE = 4096
+BUFFER_SIZE = 2048
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 port = 55000
@@ -13,10 +13,12 @@ client_socket.connect(('127.0.0.1', port))
 print('---Client Manual---')
 print('To send a message to a single user use the syntax "@username:message"')
 print('To send a message to all connected users use the syntax "@all:message"')
-print('To get a list of online users enter the words "get users"')
-print('To get a list of server files ...')
-print('To request a file enter "$filename"')
-print('To download the file after requesting it enter "&& name to save"')
+print()
+print("For the following commands use !'insert command here'")
+print('!users - get a list of current online users')
+print('!files - get a list of server files')
+print("!request 'file name' - make sure to enter full name including suffix. Example '!request dog.jpg'")
+print("!download 'save as name' - to download, make sure you request the file. Example '!download dog_copy")
 print('---Client Manual---')
 print()
 
@@ -39,11 +41,12 @@ while True:
 flag = 0
 
 
-def checksum(packets: {}):
+# check if all packets arrived, return a list of keys of packets that didn't.
+def checksum(packets: {}) -> []:
     missing_packets = []
-    for i in packets.keys():
-        if not (packets[i])[1]:
-            missing_packets.append(i)
+    for key in packets.keys():
+        if packets[key] is False or None:
+            missing_packets.append(key)
     return missing_packets
 
 
@@ -64,72 +67,87 @@ def recv_msg():
 
 
 def send_msg():
+    print('Thanks for signing in - you can chat now')
     global flag
     while True:
-        send_msg = input("Send your message in format @user:message or @all:message ")
-        if send_msg == 'exit':
-            out_msg = ('!'+send_msg+","+myname).encode()
+        client_input = input()
+        if client_input == '!exit':
+            out_msg = (client_input + SEPARATOR + myname).encode()
             client_socket.send(out_msg)
             flag = 1
             break
-        elif send_msg.startswith('$'):
-            out_msg = (send_msg+","+myname).encode()
-        elif send_msg.startswith('get users'):
-            out_msg = ('%' + send_msg).encode()
-        elif send_msg.startswith('&&'):
-            out_msg = ('&&' + SEPARATOR + send_msg[3:] + SEPARATOR + myname).encode()
+        elif client_input.startswith('!download'):
+            # if else to prevent mis use of space
+            if ord(client_input[9]) == ord(' '):
+                client_input = client_input[:9] + SEPARATOR + client_input[10:]
+            else:
+                client_input = client_input[:9] + SEPARATOR + client_input[9:]
+            out_msg = (client_input + SEPARATOR + myname).encode()
+        elif client_input.startswith('!request'):
+            # if else to prevent mis use of space
+            if ord(client_input[8]) == ord(' '):
+                client_input = client_input[:8] + SEPARATOR + client_input[9:]
+            else:
+                client_input = client_input[:8] + SEPARATOR + client_input[8:]
+            out_msg = (client_input + SEPARATOR + myname).encode()
         else:
-            out_msg = send_msg.encode()
+            out_msg = client_input.encode()
         client_socket.send(out_msg)
         # time.sleep(2)
 
 
-def binaryToDecimal(binary):
-    binary1 = binary
-    decimal, i, n = 0, 0, 0
-    while (binary != 0):
-        dec = binary % 10
-        decimal = decimal + dec * pow(2, i)
-        binary = binary // 10
-        i += 1
-    return decimal
+def init_packets_dict(number_of_packets: int) -> {}:
+    packets = {}
+    for i in range(1, number_of_packets + 1):
+        if i <= 9:
+            index = '0' + str(i)
+        else:
+            index = str(i)
+        packets[index] = False
+    return packets
 
 
-def download_file(suffix: str, save_as_name, file_size, available_port, number_of_packets):
+def unsplit(missing_packets: [str]) -> str:
+    st = ''
+    for i in missing_packets:
+        if st == '':
+            st = i
+        else:
+            st = st + ',' + i
+    return st
+
+
+def write_to_file(packets, save_as_name, suffix):
+    file = open((save_as_name + '.' + suffix), 'wb')
+    for packet in packets.values():
+        file.write(packet)
+    file.close()
+
+
+def download_file(suffix, save_as_name, file_size, available_port, number_of_packets):
     file_size = int(file_size)
-    number_of_packets = int(number_of_packets)
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.bind(('127.0.0.1', available_port))
-    file = open((save_as_name + '.' + suffix), 'wb')
-    packets = {}
-    for i in range(0, number_of_packets):
-        packets[i] = (None, False)
+    packets = init_packets_dict(int(number_of_packets))
     received = 0
     while True:
         missing_packets = checksum(packets)
         if len(missing_packets) == 0:
             client_socket.send('!check'.encode())
+            print('sent check')
             break
-        else:
-            st = ''
-            for i in missing_packets:
-                if st == '':
-                    st = str(i)
-                else:
-                    st = st + ',' + str(i)
-            client_socket.send(st.encode())
-        for i in missing_packets:
-            bytes_read = udp_socket.recv(BUFFER_SIZE)
-            data = bytes_read[:4000]
-            seq_num = bytes_read[4000:].decode()
-            seq_num = binaryToDecimal(int(seq_num))
-            packets[seq_num] = (data, True)
-            # received = received + len(data)
-            # print(f'received: {received} / {file_size} bytes')
+        time.sleep(0.25)
+        st = unsplit(missing_packets)
+        client_socket.send(st.encode())
+        bytes_read = udp_socket.recv(BUFFER_SIZE)
+        data = bytes_read[2:]
+        seq_num_str = bytes_read[:2].decode()
+        packets[seq_num_str] = data
+        received += len(data)
+        print(f'recevied {received} / {file_size} bytes')
 
-    for packet in packets.values():
-        file.write(packet[0])
-    file.close()
+    # received all packets, write and close file
+    write_to_file(packets, save_as_name, suffix)
     udp_socket.close()
     return
 
