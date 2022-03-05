@@ -9,7 +9,7 @@ Reliable Data Transfer (RDT) over UDP (User Datagram Protocol), in our case data
 
 #### Sequence Numbering Protocol
 
-By requesting a certain file the server transmits the relevant data for the download proccess, within that data the client finds the file size, he then knows to expect filesize/2048 amount of *different* packets heading his way. Each packet has that Sequence Number header, that way the client reveals which packets he gets and which packets are still missing. Using this numbering protocol the client and server are communicating back and forth accordingly until the client receives every packet sequence starting with 01 up to the amount of total packets.
+By requesting a certain file the server transmits the relevant data for the download proccess, within that data the client finds the file size, he then knows to expect filesize/2048 amount of **different** packets heading his way. Each packet has that Sequence Number header, that way the client reveals which packets he gets and which packets are still missing. Using this numbering protocol the client and server are communicating back and forth accordingly until the client receives every packet sequence starting with 01 up to the amount of total packets.
 
 ![segments drawio](https://user-images.githubusercontent.com/92747945/156886555-f774e33b-b04b-4066-beed-aaa5ab3c54e7.png)
 
