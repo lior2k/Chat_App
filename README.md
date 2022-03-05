@@ -70,6 +70,7 @@ The issue we had with latency was: missing packets messages were chained togethe
 ![image](https://user-images.githubusercontent.com/92747945/156879703-ae48bfd2-d8d4-4d23-8a4f-07ae03ab3b33.png)
 
 ```sh
+Make sure to run the server before the client.
 Make sure to cd to src folder before running Server/Client.
 On Linux the proccess is the same except the ipconfig command which is different, if you dont know the linux version of ipconfig, google it. :)
 ```
