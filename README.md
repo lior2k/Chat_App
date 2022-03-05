@@ -1,11 +1,11 @@
-# Online Chat Assignment
+# Online Chat Assignment - Python
 
 This project revolves around implementing an online chat including reliable file transfer over udp using the knowledge we aquired during the Networking Course in Ariel-University.
 
 ## Introduction
-First and foremost we implemented our online chat room is a server-multiple client application. The chat room allows sending and receiving messages over TCP connections. Each user may send messages to the entire chat room or private messages to other specific users. Furthermore, we were tasked with implementing reliable file transfer over UDP.
-Reliable Data Transfer (RDT) over UDP (User Datagram Protocol), in our case data being files. The reliability is achieved using Sequence Numbering Protocol. Unlike TCP, UDP is an unreliable data transfer protocol in the transport layer. Our goal is transferring files fast and reliably over UDP connections.
-
+First and foremost we implemented our online chat room which is a server-multiple client application. The chat room allows sending and receiving messages over TCP connections. Each user may send messages to the entire chat room or private messages to other specific users. Furthermore, we were tasked with implementing reliable file transfer over UDP.
+Reliable Data Transfer (RDT) over UDP (User Datagram Protocol), in our case data being files. The reliability is achieved using Selective Repeat Protocol - SRP. Unlike TCP, UDP is an unreliable data transfer protocol in the transport layer. Our goal is transferring files fast and reliably over UDP connections.
+Required Libraries - Select.
 
 #### Selective Repeat Protocol - SRP
 
