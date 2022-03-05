@@ -45,16 +45,18 @@ The issue we had with latency was: missing packets messages were chained togethe
 ## Deployment
 - Download the Code
 - To run on Windows:
-
+```sh
+To run on localhost ignore the ip related instructions and enter 127.0.0.1 / 127.0.1.1 when requested to enter ip.
+```
 - Run Server.py.
 
 ![image](https://user-images.githubusercontent.com/92747945/156879417-456b1bc4-f2f2-4f3f-ab75-0cdd599032c9.png)
 
-- Open cmd, type ipconfig and look for your IPv4 address under Wireless Lan Adapter (on the server's computer).
+- Open cmd (on the server's computer), type ipconfig and look for your IPv4 address under Wireless Lan Adapter.
 
 ![image](https://user-images.githubusercontent.com/92747945/156879628-2d9a03c5-b1b8-448c-b815-5d658c283c21.png)
 
-- Run Client.py.
+- Run Client.py (from any computer on the wifi network).
 
 ![image](https://user-images.githubusercontent.com/92747945/156879546-0d24a523-cb9e-44ed-95cd-b7f49e10a452.png)
 
