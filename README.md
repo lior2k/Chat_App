@@ -3,7 +3,7 @@
 This project revolves around implementing an online chat including reliable file transfer over udp using the knowledge we aquired during the Networking Course in Ariel-University.
 
 ## Introduction
-First and foremost we implemented our online chat room, cosisting of a server and clients. The chat room allows sending and receiving messages over TCP connections. Each user may send messages to the entire chat room or private messages to other specific users. Furthermore, we were tasked with implementing reliable file transfer over UDP.
+First and foremost we implemented our online chat room, consisting of a server and clients. The chat room allows sending and receiving messages over TCP connections. Each user may send messages to the entire chat room or private messages to other specific users. Furthermore, we were tasked with implementing reliable file transfer over UDP.
 Reliable Data Transfer (RDT) over UDP (User Datagram Protocol), in our case data being files, is a server-client application. The reliability is achieved using Sequence Numbering Protocol. Unlike TCP, UDP is an unreliable data transfer protocol in the transport layer. Our goal is transferring files fast and reliably over UDP connections.
 
 
