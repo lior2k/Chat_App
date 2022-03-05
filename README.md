@@ -87,6 +87,3 @@ https://user-images.githubusercontent.com/92747945/156892358-0d783984-f260-4715-
 - [@lior2k](https://www.github.com/lior2k)
 - [@chai9l](https://www.github.com/chai9l)
 
-## Appendix
-
-Any additional information goes here
