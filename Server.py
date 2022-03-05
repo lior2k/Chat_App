@@ -59,14 +59,18 @@ def get_users():
 
 def remove_user():
     exit_data = data.decode().split(SEPARATOR)
-    socket_list.pop(get_address(sock))
     client_name = exit_data[1]
+    socket_list.remove((users[client_name])[0])
     users.pop(client_name)
     msg = "User " + client_name + " disconnected."
     print(msg)
     for sock_ in socket_list:
         if sock_ != server_socket:
             sock_.send(msg.encode())
+
+
+def get_file_list():
+    sock.send(bytes(file_list, "utf-8"))
 
 
 def request_file():
@@ -80,8 +84,8 @@ def request_file():
     try:
         open(filename, 'r')
     except FileNotFoundError:
-        sock.send('FileNotFoundError found during file request')
-        print(FileNotFoundError)
+        sock.send('FileNotFoundError found during file request'.encode())
+        print(FileNotFoundError.filename)
         return
     files[user_name] = filename
     sock.send(("file - " + filename + " request received, to download use !download 'save as name'").encode())
@@ -143,17 +147,17 @@ def get_address(client_socket):
 # packets would be sufficient. note that there probably will be a problem for files
 # larger then 2*99 = 198kb which would require more then 99 packets since our buffer size
 # is 2048 (minus the 2 bytes we save for each sequence number)
-def send_file(client_socket):
+def send_file():
     # download msg - client sent the msg !download+saveasname+username
     download_msg = data.decode().split(SEPARATOR)
     save_as_name = download_msg[1]
     user_name = download_msg[2]
     # client_addr = current_socket.getsockname()[0]
-    client_addr = get_address(client_socket)
+    client_addr = get_address(sock)
 
     # in case file was not requested
     if not files.keys().__contains__(user_name):
-        client_socket.send('error: no file was requested'.encode())
+        sock.send('error: no file was requested'.encode())
         return
 
     # get relevant data to perform the upload
@@ -162,27 +166,29 @@ def send_file(client_socket):
 
     # in case all ports are in use
     if available_port == 0:
-        client_socket.send('all ports used, try again later'.encode())
+        sock.send('all ports used, try again later'.encode())
         return
 
     packets = load_file_into_dict(abs_path)
 
     # send the client the relevant data to perform the download
-    client_socket.send(
+    sock.send(
         f'&download{SEPARATOR}{file_type}{SEPARATOR}{save_as_name}{SEPARATOR}{file_size}{SEPARATOR}{available_port}{SEPARATOR}{len(packets)}'.encode())
 
     # the actual sending of the file:
     while True:
-        acknowledge_msg = client_socket.recv(1024).decode()
+        acknowledge_msg = sock.recv(1024).decode()
         time.sleep(0.25)
-        if acknowledge_msg == '!check':
+        if acknowledge_msg.__contains__('!check'):
             print('download finished!')
             break
         else:
             try:
                 missing_packets = acknowledge_msg.split(',')
-                udp_server_socket.sendto(packets[missing_packets[0]], (client_addr, available_port))
-                print(f'sent pnum {missing_packets[0]} of len {len(packets[missing_packets[0]])}')
+                for packet in missing_packets:
+                    if packet != '':
+                        udp_server_socket.sendto(packets[packet], (client_addr, available_port))
+                        print(f'sent pnum {packet} of len {len(packets[packet])}')
             except (ValueError, OSError, KeyError):
                 traceback.print_last()
 
@@ -198,6 +204,7 @@ port = 55000
 socket_list = []
 users = {}
 files = {}
+file_list = "'dog.jpg', 'house_lo.mp3', 'player1.gif', 'textfile.txt'"
 ports = {55001: False, 55002: False, 55003: False, 55004: False, 55005: False, 55006: False, 55007: False, 55008: False,
          55009: False, 55010: False, 55011: False, 55012: False, 55013: False, 55014: False, 55015: False}
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -232,13 +239,12 @@ while True:
                 remove_user()
             # !files
             if data.startswith(bytes("!files", "utf-8")):
-                pass
+                get_file_list()
             # !request 'file name'
             if data.startswith(bytes("!request", "utf-8")):
                 request_file()
             # !download 'save as name'
             if data.startswith(bytes("!download", "utf-8")):
-                t1 = threading.Thread(target=send_file(sock))
-                t1.start()
+                send_file()
 
 server_socket.close()

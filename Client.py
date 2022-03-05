@@ -99,10 +99,7 @@ def init_packets_dict(number_of_packets: int) -> {}:
 def unsplit(missing_packets: [str]) -> str:
     st = ''
     for i in missing_packets:
-        if st == '':
-            st = i
-        else:
-            st = st + ',' + i
+        st = st + i + ','
     return st
 
 
@@ -136,13 +133,17 @@ def download_file(suffix, save_as_name, file_size, available_port, number_of_pac
         bytes_read = udp_socket.recv(BUFFER_SIZE)
         data = bytes_read[2:]
         seq_num_str = bytes_read[:2].decode()
-        packets[seq_num_str] = data
-        received += len(data)
-        print(f'recevied {received} / {file_size} bytes')
+        if not packets[seq_num_str]:
+            packets[seq_num_str] = data
+            received += len(data)
+            print(f'recevied {received} / {file_size} bytes [pnum - {seq_num_str}]')
 
     # received all packets, write and close file
     write_to_file(packets, save_as_name, suffix)
     udp_socket.close()
+
+    # received all packets, write and close file
+    write_to_file(packets, save_as_name, suffix)
 
 
 t1 = threading.Thread(target=recv_msg)
