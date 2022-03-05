@@ -3,8 +3,8 @@
 This project revolves around implementing an online chat including reliable file transfer over udp using the knowledge we aquired during the Networking Course in Ariel-University.
 
 ## Introduction
-First and foremost we implemented our online chat room, consisting of a server and clients. The chat room allows sending and receiving messages over TCP connections. Each user may send messages to the entire chat room or private messages to other specific users. Furthermore, we were tasked with implementing reliable file transfer over UDP.
-Reliable Data Transfer (RDT) over UDP (User Datagram Protocol), in our case data being files, is a server-client application. The reliability is achieved using Sequence Numbering Protocol. Unlike TCP, UDP is an unreliable data transfer protocol in the transport layer. Our goal is transferring files fast and reliably over UDP connections.
+First and foremost we implemented our online chat room is a server-multiple client application. The chat room allows sending and receiving messages over TCP connections. Each user may send messages to the entire chat room or private messages to other specific users. Furthermore, we were tasked with implementing reliable file transfer over UDP.
+Reliable Data Transfer (RDT) over UDP (User Datagram Protocol), in our case data being files. The reliability is achieved using Sequence Numbering Protocol. Unlike TCP, UDP is an unreliable data transfer protocol in the transport layer. Our goal is transferring files fast and reliably over UDP connections.
 
 
 #### Sequence Numbering Protocol
@@ -12,15 +12,6 @@ Reliable Data Transfer (RDT) over UDP (User Datagram Protocol), in our case data
 By requesting a certain file the server transmits the relevant data for the download proccess, within that data the client finds the file size, he then knows to expect filesize/2048 amount of packets heading his way. Each packet has that Sequence Number header, that way the client reveals which packets he gets and which packets are still missing. Using this numbering protocol the client and server are communicating back and forth accordingly until the client receives every packet sequence starting with 01 up to the amount of total packets.
 
 ![segments drawio](https://user-images.githubusercontent.com/92747945/156886555-f774e33b-b04b-4066-beed-aaa5ab3c54e7.png)
-
-
-## Diagrams
-
-### Messages Diagram:
-![Messages](https://i.imgur.com/oHGT8sS.jpg)
-### Download Diagram:
-![Download process](https://i.imgur.com/dsZ4dhl.jpg)
-
 
 ## Reliable UDP
 
@@ -38,6 +29,12 @@ By requesting a certain file the server transmits the relevant data for the down
 #### Latency
 The issue we had with latency was: missing packets messages were chained together as the client sent more requests then the server recevied, this caused the server to receive multiple packets requests at once which caused KeyErrors and wrong packet numbers. 
 
+## Diagrams
+
+### Messages Diagram:
+![Messages](https://i.imgur.com/uHethui.jpeg)
+### Download Diagram:
+![Download process](https://i.imgur.com/dsZ4dhl.jpg)
 
 ## Features
 
