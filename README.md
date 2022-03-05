@@ -1,6 +1,6 @@
 # Online Chat Assignment
 
-This project revolves around implmenting an online chat using the knowledge we aquired during the Networking Course in Ariel-University.
+This project revolves around implementing an online chat using the knowledge we aquired during the Networking Course in Ariel-University.
 
 ## Diagrams
 ### Messages Diagram:
