@@ -7,9 +7,9 @@ First and foremost we implemented our online chat room is a server-multiple clie
 Reliable Data Transfer (RDT) over UDP (User Datagram Protocol), in our case data being files. The reliability is achieved using Sequence Numbering Protocol. Unlike TCP, UDP is an unreliable data transfer protocol in the transport layer. Our goal is transferring files fast and reliably over UDP connections.
 
 
-#### Sequence Numbering Protocol
+#### Selective Repeat Protocol - SRP
 
-By requesting a certain file the server transmits the relevant data for the download proccess, within that data the client finds the file size, he then knows to expect filesize/2048 amount of **different** packets heading his way. Each packet has that Sequence Number header, that way the client reveals which packets he gets and which packets are still missing. Using this numbering protocol the client and server are communicating back and forth accordingly until the client receives every packet sequence starting with 01 up to the amount of total packets.
+By requesting a certain file the server transmits the relevant data for the download proccess, within that data the client finds the file size, he then knows to expect filesize/2048 amount of **different** packets heading his way. Each packet has that Sequence Number header, that way the client reveals which packets he gets and which packets are still missing. Using SRP protocol the client and server are communicating back and forth accordingly until the client receives every packet sequence starting with 01 up to the amount of total packets.
 
 ![segments drawio](https://user-images.githubusercontent.com/92747945/156886555-f774e33b-b04b-4066-beed-aaa5ab3c54e7.png)
 
@@ -75,6 +75,9 @@ On Linux the proccess is the same except the ipconfig command which is different
 ```
 
 ## Usage/Examples
+
+Commands example:
+![commandexamples](https://user-images.githubusercontent.com/92747945/156895426-37d2d076-ced8-4dba-88ef-ca2260dd416c.png)
 
 https://user-images.githubusercontent.com/92747945/156892358-0d783984-f260-4715-a8a4-b65552770cd8.mp4
 
