@@ -60,7 +60,7 @@ To run on localhost ignore the ip related instructions and enter 127.0.0.1 / 127
 
 ![image](https://user-images.githubusercontent.com/92747945/156879546-0d24a523-cb9e-44ed-95cd-b7f49e10a452.png)
 
-- Enter the server's IPv4 address shown above.
+- Enter the server's IPv4 address.
 
 ![image](https://user-images.githubusercontent.com/92747945/156879694-0d9ad4fc-30c9-4ccb-a10f-e0076ffb48f1.png)
 
