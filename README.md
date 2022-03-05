@@ -35,15 +35,15 @@ The issue we had with latency was: missing packets messages were chained togethe
 - Download the Code
 - To run on Windows:
 
-- Run Server.py
+- Run Server.py.
 
 ![image](https://user-images.githubusercontent.com/92747945/156879417-456b1bc4-f2f2-4f3f-ab75-0cdd599032c9.png)
 
-- Open cmd, type ipconfig and look for your IPv4 address under Wireless Lan Adapter
+- Open cmd, type ipconfig and look for your IPv4 address under Wireless Lan Adapter (on the server's computer).
 
 ![image](https://user-images.githubusercontent.com/92747945/156879628-2d9a03c5-b1b8-448c-b815-5d658c283c21.png)
 
-- Run Client.py
+- Run Client.py.
 
 ![image](https://user-images.githubusercontent.com/92747945/156879546-0d24a523-cb9e-44ed-95cd-b7f49e10a452.png)
 
@@ -51,7 +51,7 @@ The issue we had with latency was: missing packets messages were chained togethe
 
 ![image](https://user-images.githubusercontent.com/92747945/156879694-0d9ad4fc-30c9-4ccb-a10f-e0076ffb48f1.png)
 
-- Enter your username
+- Enter your username.
 
 ![image](https://user-images.githubusercontent.com/92747945/156879703-ae48bfd2-d8d4-4d23-8a4f-07ae03ab3b33.png)
 
